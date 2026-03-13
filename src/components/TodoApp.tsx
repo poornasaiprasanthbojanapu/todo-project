@@ -3,6 +3,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import { FilterType } from '@/types/todo';
+import { Profile } from '@/types/profile';
+import ProfileBadge from './ProfileBadge';
 
 interface GroceryItem {
   id: string;
@@ -10,6 +12,7 @@ interface GroceryItem {
   quantity?: string;
   completed: boolean;
   created_at: string;
+  profile_id: string;
 }
 
 const FILTERS: { key: FilterType; label: string }[] = [
@@ -106,7 +109,12 @@ function ItemRow({ item, isDeleting, onToggle, onDelete }: ItemRowProps) {
   );
 }
 
-export default function TodoApp() {
+interface TodoAppProps {
+  profile: Profile;
+  onSwitchProfile: () => void;
+}
+
+export default function TodoApp({ profile, onSwitchProfile }: TodoAppProps) {
   const [items, setItems] = useState<GroceryItem[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [quantityValue, setQuantityValue] = useState('');
@@ -125,19 +133,27 @@ export default function TodoApp() {
     const { data } = await supabase
       .from('grocery_items')
       .select('*')
+      .eq('profile_id', profile.id)
       .order('created_at', { ascending: false });
     if (data) setItems(data as GroceryItem[]);
     setLoading(false);
   };
 
   useEffect(() => {
+    setLoading(true);
+    setItems([]);
     fetchItems();
 
     const channel = supabase
-      .channel('grocery')
+      .channel(`grocery:${profile.id}`)
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'grocery_items' },
+        {
+          event: '*',
+          schema: 'public',
+          table: 'grocery_items',
+          filter: `profile_id=eq.${profile.id}`,
+        },
         () => fetchItems()
       )
       .subscribe();
@@ -145,7 +161,7 @@ export default function TodoApp() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [profile.id]);
 
   const addTodo = async () => {
     const text = inputValue.trim();
@@ -159,13 +175,14 @@ export default function TodoApp() {
       quantity,
       completed: false,
       created_at: new Date().toISOString(),
+      profile_id: profile.id,
     };
     setItems(prev => [tempItem, ...prev]);
     setInputValue('');
     setQuantityValue('');
     inputRef.current?.focus();
 
-    await supabase.from('grocery_items').insert({ text, quantity, completed: false });
+    await supabase.from('grocery_items').insert({ text, quantity, completed: false, profile_id: profile.id });
   };
 
   const toggleTodo = async (id: string, currentCompleted: boolean) => {
@@ -193,7 +210,11 @@ export default function TodoApp() {
 
   const clearCompleted = async () => {
     setItems(prev => prev.filter(item => !item.completed));
-    await supabase.from('grocery_items').delete().eq('completed', true);
+    await supabase
+      .from('grocery_items')
+      .delete()
+      .eq('completed', true)
+      .eq('profile_id', profile.id);
   };
 
   const clearAll = async () => {
@@ -202,7 +223,7 @@ export default function TodoApp() {
     await supabase
       .from('grocery_items')
       .delete()
-      .neq('id', '00000000-0000-0000-0000-000000000000');
+      .eq('profile_id', profile.id);
   };
 
   const filteredItems = items.filter(item => {
@@ -227,10 +248,7 @@ export default function TodoApp() {
         <div className="max-w-3xl mx-auto w-full">
           {/* Title row */}
           <div className="flex items-center justify-between mb-1">
-            <div className="flex items-center gap-2">
-              <span className="text-2xl">🛒</span>
-              <h1 className="text-3xl font-black text-emerald-600 tracking-tight">CartList</h1>
-            </div>
+            <ProfileBadge profile={profile} onSwitch={onSwitchProfile} />
             <div className="flex items-center gap-3">
               {totalCount > 0 && (
                 <div
