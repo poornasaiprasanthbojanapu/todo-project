@@ -1,14 +1,36 @@
 @import "tailwindcss";
 
-:root {
-  --background: #0f1117;
-  --foreground: #e2e8f0;
-  --accent: #10b981;
-  --accent-dim: #059669;
+/* ── Light theme (default) ──────────────────────────────────────────────── */
+:root,
+[data-theme="light"] {
+  --bg: #f0f4f8;
+  --card: #ffffff;
+  --header-bg: #ffffffee;
+  --card-border: #e2e8f0;
+  --input-bg: #f8fafc;
+  --input-border: #cbd5e1;
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #94a3b8;
+  --item-border: #f1f5f9;
+  --item-hover: #f8fafc;
+  --item-completed-bg: #f0fdf4;
+}
+
+/* ── Dark theme ─────────────────────────────────────────────────────────── */
+[data-theme="dark"] {
+  --bg: #0f1117;
   --card: #161b27;
+  --header-bg: #161b27ee;
   --card-border: #1e2636;
   --input-bg: #1e2636;
   --input-border: #2a3347;
+  --text-primary: #e2e8f0;
+  --text-secondary: #94a3b8;
+  --text-muted: #4a5568;
+  --item-border: #1e2636;
+  --item-hover: #1e2636;
+  --item-completed-bg: #0d2418;
 }
 
 @theme inline {
@@ -18,10 +40,16 @@
   --font-mono: var(--font-geist-mono);
 }
 
+html {
+  height: 100%;
+}
+
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  height: 100%;
+  background: var(--bg);
+  color: var(--text-primary);
+  font-family: var(--font-geist-sans), 'Inter', system-ui, -apple-system, sans-serif;
+  transition: background 0.3s ease, color 0.3s ease;
 }
 
 /* ── Animations ──────────────────────────────────────────────────────────── */
